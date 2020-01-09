@@ -1,0 +1,38 @@
+{
+  "name": "coin-miner",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "clean": "node node_modules/rimraf/bin coverage build tmp",
+    "build": "node_modules/typescript/bin/tsc -p tsconfig.release.json",
+    "watch": "node_modules/typescript/bin/tsc -w -p tsconfig.release.json",
+    "lint": "node_modules/typescript/bin/tsc --noEmit; node_modules/tslint/bin/tslint -t stylish --project \"tsconfig.json\" -c \"tslint.json\"",
+    "lint:fix": "node_modules/tslint/bin/tslint -t stylish --project \"tsconfig.json\" -c \"tslint.json\" --fix",
+    "pretest": "npm run lint",
+    "test": "npm run test-only",
+    "test-only": "node node_modules/jest/bin/jest --coverage",
+    "test:watch": "node node_modules/jest/bin/jest --watch --no-cache",
+    "start": "node node_modules/ts-node/dist/bin ./src/index.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.1",
+    "crypto-js": "^3.1.9-1",
+    "jest": "^24.9.0",
+    "ts-node": "^8.5.4",
+    "typescript": "^3.7.4",
+    "winston": "^3.2.1",
+    "yaml": "^1.7.2",
+    "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^3.1.43",
+    "@types/jest": "^24.0.25",
+    "@types/yamljs": "^0.2.30",
+    "rimraf": "^3.0.0",
+    "tslint": "^6.0.0-beta0",
+    "tslint-microsoft-contrib": "^6.2.0"
+  }
+}
