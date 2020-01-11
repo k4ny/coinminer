@@ -1,10 +1,8 @@
 import * as crypto from 'crypto';
 
-export function hashingFunction(digest: string, block: string): Buffer {
+export function hashingFunction(block: string): Buffer {
   const hashSha384 = crypto.createHash('sha384');
-  hashSha384.update(digest);
   hashSha384.update(block);
-  hashSha384.update(digest);
   hashSha384.update(block);
 
   return hashSha384.digest();

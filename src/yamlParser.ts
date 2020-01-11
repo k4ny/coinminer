@@ -40,7 +40,9 @@ export class YamlParser {
     return transactions;
   }
 
-  public createBlock(timestamp: Date, nonce: number, fee: string, difficulty: number, transactions: Transaction[]): string {
+  public createBlock(timestamp: Date, nonce: number, fee: number, difficulty: number, transactions: Transaction[]): string {
+    const feeString: string = Number.isInteger(fee) ? `${fee}.0` : fee.toString();
+
     let str = `--- !Block
 Timestamp: ${timestamp.toISOString()}
 Difficulty: ${difficulty}
@@ -48,7 +50,7 @@ Nonce: ${nonce}
 Miner: Kany
 Transactions:
   - !Transaction
-    Fee: ${fee}
+    Fee: ${feeString}
 `;
 
     const NEW_LINE_WITH_DOUBLE_TAB: string = NL.concat(TAB, TAB);

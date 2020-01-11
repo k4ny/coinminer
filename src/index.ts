@@ -1,8 +1,10 @@
 //import * as winston from 'winston';
 import { serverHost, serverPort } from './config/config';
+import { NL } from './consts';
+import { getZeroCountFromStart, hashingFunction } from './functions';
 import { ServerClient } from './ServerClient';
+import { State } from './types';
 import { YamlParser } from './yamlParser';
-import { hashingFunction } from './functions';
 
 const start = async (): Promise<void> => {
 
@@ -18,58 +20,39 @@ const start = async (): Promise<void> => {
   //   ]
   // });
 
-  //console.log((await client.getBlockChain()));
-  const state = await client.getState();
-  //console.log(state);
-  const transactions = await client.getTransactions();
-  //console.log(transactions);
+  const [state, transactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
 
   const parsedTransactions = parser.parseTransactions(transactions);
 
-  const digest = parser.createDigestBlock(state.Digest);
-  console.log(digest);
+  const previousBlock = parser.createDigestBlock(state.Digest);
 
-  let hash;
+  let hash: Buffer;
   let nonce;
-  let block;
+  let newBlock;
   console.log(state.Difficulty);
 
   do {
     nonce = Math.ceil(Math.random() * (1000000000000000 - 1) + 1);
 
-    block = parser.createBlock(
+    const block = parser.createBlock(
       new Date(),
       nonce,
-      state.Fee.toString(),
+      state.Fee,
       state.Difficulty,
-      [
-        parsedTransactions[0],
-        parsedTransactions[1],
-        parsedTransactions[2],
-        parsedTransactions[3],
-        parsedTransactions[4],
-        parsedTransactions[5],
-        parsedTransactions[6],
-      ],
+      parsedTransactions.slice(0, 99),
     );
 
-    hash = hashingFunction(digest, block);
+    newBlock = previousBlock
+      .concat(NL, block);
 
-    console.log(hash);
-
+    hash = hashingFunction(newBlock);
   }
-  // tslint:disable-next-line: no-suspicious-comment
-  //FIXME: difficulty neni pocet nul ve stringu, ale v binarni reprezentaci
-  while (hash.toString().slice(0, 3) !== '000');
+  while (getZeroCountFromStart(hash) < state.Difficulty);
 
-  console.log(hash);
-  console.log(hash.toString());
-  console.log(nonce);
-
-  const newBlock = parser.createDigestBlock(hash.toString()).concat(block);
   console.log(newBlock);
 
   try {
+    console.log(`'${newBlock}'`);
     const result = await client.putBlock(newBlock);
     console.log(result);
   }

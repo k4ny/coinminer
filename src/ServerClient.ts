@@ -36,7 +36,11 @@ export class ServerClient {
   }
 
   public async putBlock(block: string): Promise<any> {
-    return axios.default.put(`${this.serverUrl}${this.urlPrefix}`, block);
+    return axios.default.put(`${this.serverUrl}${this.urlPrefix}`, block, {
+      headers: {
+        'Content-type': 'text/plain',
+      },
+    });
 
   }
 
