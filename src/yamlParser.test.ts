@@ -50,7 +50,8 @@ describe('yamlParser tests', () => {
     const result = parser.createBlock(
       date,
       1,
-      '1.0',
+      // tslint:disable-next-line:number-literal-format
+      1.0,
       8,
       [transactions[0], transactions[1]],
     );

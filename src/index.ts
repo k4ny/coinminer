@@ -1,4 +1,5 @@
 //import * as winston from 'winston';
+import * as WebSocket from 'ws';
 import { serverHost, serverPort } from './config/config';
 import { NL } from './consts';
 import { getZeroCountFromStart, hashingFunction } from './functions';
@@ -20,44 +21,70 @@ const start = async (): Promise<void> => {
   //   ]
   // });
 
-  const [state, transactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
-
-  const parsedTransactions = parser.parseTransactions(transactions);
-
-  const previousBlock = parser.createDigestBlock(state.Digest);
-
-  let hash: Buffer;
-  let nonce;
-  let newBlock;
-  console.log(state.Difficulty);
-
-  do {
-    nonce = Math.ceil(Math.random() * (1000000000000000 - 1) + 1);
-
-    const block = parser.createBlock(
-      new Date(),
-      nonce,
-      state.Fee,
-      state.Difficulty,
-      parsedTransactions.slice(0, 99),
-    );
-
-    newBlock = previousBlock
-      .concat(NL, block);
-
-    hash = hashingFunction(newBlock);
-  }
-  while (getZeroCountFromStart(hash) < state.Difficulty);
-
-  console.log(newBlock);
-
   try {
-    console.log(`'${newBlock}'`);
-    const result = await client.putBlock(newBlock);
-    console.log(result);
-  }
-  catch (err) {
+    const ws = new WebSocket(`${serverHost}:${serverPort}/api/coingame/ws`);
+
+    ws.on('open', () => {
+      console.log('⛓️ websocket opened ⛓️');
+    });
+
+    // tslint:disable-next-line:no-reserved-keywords
+    ws.on('message', (ev: string) => {
+      // tslint:disable-next-line:no-reserved-keywords
+      const json: { type: string; body: string } = JSON.parse(ev);
+      if (json.type === 'transaction.removed') {
+        const transaction = parser.parseTransaction(json.body);
+        console.log(`removed ${transaction.idLine}`);
+      }
+      if (json.type === 'transaction.added') {
+        const transaction = parser.parseTransaction(json.body);
+        console.log(`added ${transaction.idLine}`);
+      }
+    });
+  } catch (err) {
     console.log(err);
+  }
+
+  // tslint:disable-next-line:no-constant-condition
+  while (true) {
+
+    const [state, transactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
+
+    const parsedTransactions = parser.parseTransactions(transactions);
+
+    const previousBlock = parser.createDigestBlock(state.Digest);
+
+    let hash: Buffer;
+    let nonce;
+    let newBlock;
+
+    do {
+      // tslint:disable-next-line:insecure-random
+      nonce = Math.ceil(Math.random() * (1000000000000000 - 1) + 1);
+
+      const block = parser.createBlock(
+        new Date(),
+        nonce,
+        state.Fee,
+        state.Difficulty,
+        parsedTransactions.slice(0, 99),
+      );
+
+      newBlock = previousBlock
+        .concat(NL, block);
+
+      hash = hashingFunction(newBlock);
+    }
+    while (getZeroCountFromStart(hash) < state.Difficulty);
+
+    try {
+      const result = await client.putBlock(newBlock);
+      console.log(result.data);
+    }
+    catch (err) {
+      console.log(err.data);
+    }
+
   }
 
 };

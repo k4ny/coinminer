@@ -40,6 +40,22 @@ export class YamlParser {
     return transactions;
   }
 
+  public parseTransaction(yaml: string): Transaction {
+    const lines = yaml.split(NL);
+
+    const i = 0;
+
+    return {
+      validTo: new Date(lines[i + 5].slice(8)),
+      transLine: lines[i],
+      dataLine1: lines[i + 1],
+      dataLine2: lines[i + 2],
+      feeLine: lines[i + 3],
+      idLine: lines[i + 4],
+      validToLine: lines[i + 5],
+    };
+  }
+
   public createBlock(timestamp: Date, nonce: number, fee: number, difficulty: number, transactions: Transaction[]): string {
     const feeString: string = Number.isInteger(fee) ? `${fee}.0` : fee.toString();
 

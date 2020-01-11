@@ -3,10 +3,10 @@ import { getZeroCountFromStart, hashingFunction } from './functions';
 describe('tests for hash function', () => {
 
   it('should test the hashing function', async () => {
-    const result = hashingFunction(`digest`, `block`);
+    const result = hashingFunction(`block`);
 
     expect(result.toString('hex'))
-      .toEqual('f804816c45b1c130780e5dc8632d779df5a1234c1c8b06a79e97905b64e453170d813b82da52db0048c6a6a013eb5a75');
+      .toEqual('96c158f18e0554bfeddbff7feac3c2eb4ef24706c36f09496cc8a53fca050adaad5848c38c8d7b56e7725899b9e8bf1c');
   });
 });
 
