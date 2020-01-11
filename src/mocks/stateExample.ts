@@ -1,4 +1,4 @@
-import { State } from '..';
+import { State } from '../types';
 
 export const stateExample: State = {
   Digest:

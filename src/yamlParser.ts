@@ -1,3 +1,4 @@
+import { NL, TAB } from './consts';
 export interface Transaction {
   validTo: Date;
   transLine: string;
@@ -10,11 +11,9 @@ export interface Transaction {
 
 // tslint:disable-next-line:completed-docs
 export class YamlParser {
-  private readonly nl: string = `\n`;
-  private readonly tab: string = `  `;
 
   public parseTransactions(yaml: string): Transaction[] {
-    const lines = yaml.split(this.nl);
+    const lines = yaml.split(NL);
 
     const transactions: Transaction[] = [];
 
@@ -52,26 +51,20 @@ Transactions:
     Fee: ${fee}
 `;
 
+    const NEW_LINE_WITH_DOUBLE_TAB: string = NL.concat(TAB, TAB);
+
     for (const transaction of transactions) {
       str = str.concat(
         `  - !Transaction`,
-        this.nl,
-        this.tab,
-        this.tab,
+        NEW_LINE_WITH_DOUBLE_TAB,
         transaction.idLine,
-        this.nl,
-        this.tab,
-        this.tab,
+        NEW_LINE_WITH_DOUBLE_TAB,
         transaction.feeLine,
-        this.nl,
-        this.tab,
-        this.tab,
+        NEW_LINE_WITH_DOUBLE_TAB,
         transaction.dataLine1,
-        this.nl,
-        this.tab,
-        this.tab,
+        NEW_LINE_WITH_DOUBLE_TAB,
         transaction.dataLine2,
-        this.nl,
+        NL,
       );
     }
 

@@ -1,65 +1,13 @@
 //import * as winston from 'winston';
-import * as axios from 'axios';
+
 import * as crypto from 'crypto-js';
-import { serverUrl } from './config/develop';
+import { serverHost, serverPort } from './config/config';
+import { ServerClient } from './ServerClient';
 import { YamlParser } from './yamlParser';
-
-export interface BlockChain {
-  Digest: string;
-  TimeStamp: Date;
-  Difficulty: number;
-  Miner: string;
-  Transactions: any;
-}
-
-export interface State {
-  Digest: string;
-  Difficulty: number;
-  Fee: number;
-}
-
-export class ServerClient {
-  private serverUrl;
-  private urlPrefix = 'api/coingame';
-
-  public constructor(serverUrl: string) {
-    this.serverUrl = serverUrl;
-  }
-
-  public async getBlockChain(): Promise<BlockChain> {
-    const blockchain = await axios.default.get(`${this.serverUrl}${this.urlPrefix}`);
-
-    return (blockchain.data);
-  }
-
-  public async getState(): Promise<State> {
-    const state = await axios.default.get(`${this.serverUrl}${this.urlPrefix}/state`);
-
-    return (state.data);
-  }
-
-  public async getActuals(): Promise<any> {
-    const state = await axios.default.get(`${this.serverUrl}${this.urlPrefix}/actuals`);
-
-    return (state.data);
-  }
-
-  public async getTransactions(): Promise<any> {
-    const transactions = await axios.default.get(`${this.serverUrl}${this.urlPrefix}/txpool`);
-
-    return transactions.data;
-  }
-
-  public async putBlock(block: string): Promise<any> {
-    return axios.default.put(`${this.serverUrl}${this.urlPrefix}`, block);
-
-  }
-
-}
 
 const start = async (): Promise<void> => {
 
-  const client = new ServerClient(serverUrl);
+  const client = new ServerClient(serverHost, serverPort);
   const parser = new YamlParser();
 
   // const logger = winston.createLogger({
