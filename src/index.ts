@@ -1,9 +1,8 @@
 //import * as winston from 'winston';
-
-import * as crypto from 'crypto-js';
 import { serverHost, serverPort } from './config/config';
 import { ServerClient } from './ServerClient';
 import { YamlParser } from './yamlParser';
+import { hashingFunction } from './functions';
 
 const start = async (): Promise<void> => {
 
@@ -54,7 +53,9 @@ const start = async (): Promise<void> => {
       ],
     );
 
-    hash = crypto.SHA384(digest.concat(block, digest, block));
+    hash = hashingFunction(digest, block);
+
+    console.log(hash);
 
   }
   // tslint:disable-next-line: no-suspicious-comment
