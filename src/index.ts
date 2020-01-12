@@ -16,7 +16,8 @@ const start = async (): Promise<void> => {
   const transactionMap = YamlParser.PARSE_TRANSACTIONS(rawTransactions);
 
   try {
-    const ws = new WebSocket(`${serverHost}:${serverPort}/api/coingame/ws`);
+    const port = serverPort ? `:${serverPort}` : ``;
+    const ws = new WebSocket(`${serverHost}${port}/api/coingame/ws`);
 
     ws.on('open', () => {
       logger.info('⛓️ websocket opened ⛓️');
@@ -103,3 +104,9 @@ const start = async (): Promise<void> => {
 };
 
 void start();
+
+
+
+
+
+

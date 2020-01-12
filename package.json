@@ -13,7 +13,7 @@
     "test": "npm run test-only",
     "test-only": "node node_modules/jest/bin/jest --coverage",
     "test:watch": "node node_modules/jest/bin/jest --watch --no-cache",
-    "start": "node node_modules/ts-node/dist/bin ./src/index.ts"
+    "start": "yarn build && node build/src/index.js"
   },
   "author": "",
   "license": "ISC",
