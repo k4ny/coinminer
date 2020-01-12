@@ -1,4 +1,5 @@
 import { yamlTransactionsExample } from './mocks/yamlTransactionsExample';
+import { Transaction } from './types';
 import { YamlParser } from './yamlParser';
 
 describe('yamlParser tests', () => {
@@ -9,7 +10,13 @@ describe('yamlParser tests', () => {
   });
 
   it('should parse transactions', async () => {
-    const result = parser.parseTransactions(yamlTransactionsExample);
+    const resultMap = parser.parseTransactions(yamlTransactionsExample);
+
+    const result: Transaction[] = [];
+
+    for (const t of resultMap) {
+      result.push(t[1]);
+    }
 
     expect(result[0].transLine)
       .toEqual('--- !Transaction');
@@ -32,6 +39,14 @@ describe('yamlParser tests', () => {
     expect(result[0].validTo)
       .toEqual(new Date('2020-01-09T11:18:10.476Z'));
 
+    expect(result[0].transactionForBlock)
+      .toEqual(`  - !Transaction
+    Id: 326994309364519011938962984663177691490
+    Fee: 0.1
+    Data: !!binary |
+      QW1vdW50OiAxMy4zCkZyb206IEoyV1FPSkdRREFNVApUbzogNVNHMlVHRDVJSldECg==
+`);
+
     expect(result[1].validTo)
       .toEqual(new Date('2020-01-09 12:18:10.478466'));
 
@@ -53,11 +68,11 @@ describe('yamlParser tests', () => {
       // tslint:disable-next-line:number-literal-format
       1.0,
       8,
-      [transactions[0], transactions[1]],
+      transactions,
     );
 
     expect(result)
-      .toEqual(
+      .toContain(
         `--- !Block
 Timestamp: 2020-01-09T11:19:09.851Z
 Difficulty: 8
@@ -83,8 +98,8 @@ Transactions:
     const result = parser.createDigestBlock('00000000b9d0b0ceeee295cb2c02387d16ecf3b52a0811f165e5902ef78659db96e409b9493ba7fe4433e2439f5672a7');
 
     expect(result)
-    .toEqual(
-`--- !Hash
+      .toEqual(
+        `--- !Hash
 Digest: '00000000b9d0b0ceeee295cb2c02387d16ecf3b52a0811f165e5902ef78659db96e409b9493ba7fe4433e2439f5672a7'`);
   });
 });

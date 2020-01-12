@@ -1,76 +1,72 @@
-//import * as winston from 'winston';
+
 import * as WebSocket from 'ws';
-import { serverHost, serverPort } from './config/config';
+import { serverHost, serverPort } from './config';
 import { NL } from './consts';
-import { getZeroCountFromStart, hashingFunction } from './functions';
-import { ServerClient } from './ServerClient';
+import { createClasses, getZeroCountFromStart, hashingFunction } from './functions';
 import { State } from './types';
 import { YamlParser } from './yamlParser';
 
 const start = async (): Promise<void> => {
 
-  const client = new ServerClient(serverHost, serverPort);
-  const parser = new YamlParser();
+  const { client, logger } = createClasses();
 
-  // const logger = winston.createLogger({
-  //   level: 'info',
-  //   format: winston.format.json(),
-  //   defaultMeta: { service: 'user-service' },
-  //   transports: [
-  //     new winston.transports.Console()
-  //   ]
-  // });
+  // tslint:disable-next-line:prefer-const
+  let [state, rawTransactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
+
+  const transactionMap = YamlParser.PARSE_TRANSACTIONS(rawTransactions);
 
   try {
     const ws = new WebSocket(`${serverHost}:${serverPort}/api/coingame/ws`);
 
     ws.on('open', () => {
-      console.log('⛓️ websocket opened ⛓️');
+      logger.info('⛓️ websocket opened ⛓️');
     });
 
-    // tslint:disable-next-line:no-reserved-keywords
-    ws.on('message', (ev: string) => {
+    ws.on('message', async (ev: string) => {
       // tslint:disable-next-line:no-reserved-keywords
       const json: { type: string; body: string } = JSON.parse(ev);
+      const transaction = YamlParser.PARSE_TRANSACTION(json.body.split(NL));
       if (json.type === 'transaction.removed') {
-        const transaction = parser.parseTransaction(json.body.split(NL));
-        console.log(`removed ${transaction.idLine}`);
+        transactionMap.delete(transaction.idLine);
       }
       if (json.type === 'transaction.added') {
-        const transaction = parser.parseTransaction(json.body.split(NL));
-        console.log(`added ${transaction.idLine}`);
+        transactionMap.set(transaction.idLine, transaction);
       }
+
+      // try to check if Digest changed
+      const newState = await client.getState();
+      if (newState.Digest !== state.Digest) {
+        state = newState;
+      }
+
     });
   } catch (err) {
-    console.log(err);
+    logger.error(err);
   }
 
   // tslint:disable-next-line:no-constant-condition
   while (true) {
     const loopPromise: Promise<void> = new Promise(async (resolve) => {
 
-      const [state, transactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
-
-      const parsedTransactions = parser.parseTransactions(transactions);
-
-      const previousBlock = parser.createDigestBlock(state.Digest);
-
       let hash: Buffer;
       let nonce;
       let newBlock;
+      const date = new Date();
 
       do {
 
         const blockLoop: Promise<Buffer> = new Promise((res) => {
-          // tslint:disable-next-line:insecure-random
-          nonce = Math.ceil(Math.random() * (1000000000000000 - 1) + 1);
+          const previousBlock = YamlParser.CREATE_DIGEST_BLOCK(state.Digest);
 
-          const block = parser.createBlock(
-            new Date(),
+          // tslint:disable-next-line:insecure-random
+          nonce = Math.ceil(Math.random() * (Number.MAX_SAFE_INTEGER - 1) + 1);
+
+          const block = YamlParser.CREATE_BLOCK(
+            date,
             nonce,
             state.Fee,
             state.Difficulty,
-            parsedTransactions.slice(0, 99),
+            transactionMap,
           );
 
           newBlock = previousBlock
@@ -89,19 +85,21 @@ const start = async (): Promise<void> => {
       while (getZeroCountFromStart(hash) < state.Difficulty);
 
       try {
-        const result = await client.putBlock(newBlock);
-        console.log(result.data);
-        resolve();
+        await client.putBlock(newBlock);
+        logger.info('💰 block successfully sent 💰');
       }
       catch (err) {
-        console.log(err);
+        logger.error(err.response.data);
+        logger.info('🐌 another miner was faster 🐌');
+      }
+      finally {
+        state = await client.getState();
         resolve();
       }
     });
 
     await loopPromise;
   }
-
 };
 
 void start();

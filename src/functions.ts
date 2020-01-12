@@ -1,4 +1,7 @@
 import * as crypto from 'crypto';
+import * as winston from 'winston';
+import { serverHost, serverPort } from './config';
+import { ServerClient } from './ServerClient';
 
 export function hashingFunction(block: string): Buffer {
   const hashSha384 = crypto.createHash('sha384');
@@ -26,4 +29,17 @@ export function getZeroCountFromStart(hash: Buffer): number {
   }
 
   return zeroCount;
+}
+
+export function createClasses() {
+  const client = new ServerClient(serverHost, serverPort);
+  const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(winston.format.timestamp(), winston.format.simple()),
+    transports: [
+      new winston.transports.Console(),
+    ],
+  });
+
+  return { client, logger };
 }

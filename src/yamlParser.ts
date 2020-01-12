@@ -1,31 +1,25 @@
+import { minerName } from './config';
 import { NL, TAB } from './consts';
-export interface Transaction {
-  validTo: Date;
-  transLine: string;
-  dataLine1: string;
-  dataLine2: string;
-  feeLine: string;
-  idLine: string;
-  validToLine: string;
-}
+import { Transaction } from './types';
 
 // tslint:disable-next-line:completed-docs
 export class YamlParser {
 
-  public parseTransactions(yaml: string): Transaction[] {
+  public static PARSE_TRANSACTIONS(yaml: string): Map<string, Transaction> {
     const lines = yaml.split(NL);
-
-    const transactions: Transaction[] = [];
+    const transactions: Map<string, Transaction> = new Map();
 
     for (let i = 0; i <= lines.length - 6; i = i + 6) {
-      const transaction = this.parseTransaction(lines.slice(i, i + 6));
-      transactions.push(transaction);
+      const transaction = this.PARSE_TRANSACTION(lines.slice(i, i + 6));
+      transactions.set(transaction.idLine, transaction);
     }
 
     return transactions;
   }
 
-  public parseTransaction(lines: string[]): Transaction {
+  public static PARSE_TRANSACTION(lines: string[]): Transaction {
+
+    const NEW_LINE_WITH_DOUBLE_TAB: string = NL.concat(TAB, TAB);
 
     return {
       validTo: new Date(lines[5].slice(8)),
@@ -35,43 +29,47 @@ export class YamlParser {
       feeLine: lines[3],
       idLine: lines[4],
       validToLine: lines[5],
+      transactionForBlock: `  - !Transaction`.concat(
+        NEW_LINE_WITH_DOUBLE_TAB,
+        lines[4],
+        NEW_LINE_WITH_DOUBLE_TAB,
+        lines[3],
+        NEW_LINE_WITH_DOUBLE_TAB,
+        lines[1],
+        NEW_LINE_WITH_DOUBLE_TAB,
+        lines[2],
+        NL,
+      ),
     };
   }
 
-  public createBlock(timestamp: Date, nonce: number, fee: number, difficulty: number, transactions: Transaction[]): string {
+  public static CREATE_BLOCK(
+    timestamp: Date,
+    nonce: number,
+    fee: number,
+    difficulty: number,
+    transactionMap: Map<string, Transaction>,
+  ): string {
     const feeString: string = Number.isInteger(fee) ? `${fee}.0` : fee.toString();
 
     let str = `--- !Block
 Timestamp: ${timestamp.toISOString()}
 Difficulty: ${difficulty}
 Nonce: ${nonce}
-Miner: Kany
+Miner: ${minerName}
 Transactions:
   - !Transaction
     Fee: ${feeString}
 `;
 
-    const NEW_LINE_WITH_DOUBLE_TAB: string = NL.concat(TAB, TAB);
-
-    for (const transaction of transactions) {
-      str = str.concat(
-        `  - !Transaction`,
-        NEW_LINE_WITH_DOUBLE_TAB,
-        transaction.idLine,
-        NEW_LINE_WITH_DOUBLE_TAB,
-        transaction.feeLine,
-        NEW_LINE_WITH_DOUBLE_TAB,
-        transaction.dataLine1,
-        NEW_LINE_WITH_DOUBLE_TAB,
-        transaction.dataLine2,
-        NL,
-      );
+    for (const [, transaction] of transactionMap) {
+      str = str.concat(transaction.transactionForBlock);
     }
 
     return str;
   }
 
-  public createDigestBlock(digest: string): string {
+  public static CREATE_DIGEST_BLOCK(digest: string): string {
 
     return `--- !Hash
 Digest: '${digest}'`;

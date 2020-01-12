@@ -11,3 +11,14 @@ export type  State = {
   Difficulty: number;
   Fee: number;
 };
+
+export type Transaction = {
+  validTo: Date;
+  transLine: string;
+  dataLine1: string;
+  dataLine2: string;
+  feeLine: string;
+  idLine: string;
+  validToLine: string;
+  transactionForBlock: string;
+};
