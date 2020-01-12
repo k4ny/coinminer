@@ -24,3 +24,20 @@ For tests you should run
 | SERVER_HOST               | Server host - example 'http://localhost'                                            |
 | SERVER_PORT               | Server Port - example '8080'                                                        |
 | MINER_NAME                | Miner name visible in score - example 'Peter'                                       |
+
+### Run application in docker
+
+Build docker container
+```bash
+docker build -t coinminer .
+```
+
+Run container
+```bash
+docker run coinminer
+```
+
+When coingame runs on localhost
+```bash
+docker run --network="host" coinminer
+```
