@@ -1,133 +1,112 @@
-//import * as winston from 'winston';
-import * as axios from 'axios';
-import * as crypto from 'crypto-js';
-import { serverUrl } from './config/develop';
+
+import * as WebSocket from 'ws';
+import { serverHost, serverPort } from './config';
+import { NL } from './consts';
+import { createClasses, getZeroCountFromStart, hashingFunction } from './functions';
+import { State } from './types';
 import { YamlParser } from './yamlParser';
-
-export interface BlockChain {
-  Digest: string;
-  TimeStamp: Date;
-  Difficulty: number;
-  Miner: string;
-  Transactions: any;
-}
-
-export interface State {
-  Digest: string;
-  Difficulty: number;
-  Fee: number;
-}
-
-export class ServerClient {
-  private serverUrl;
-  private urlPrefix = 'api/coingame';
-
-  public constructor(serverUrl: string) {
-    this.serverUrl = serverUrl;
-  }
-
-  public async getBlockChain(): Promise<BlockChain> {
-    const blockchain = await axios.default.get(`${this.serverUrl}${this.urlPrefix}`);
-
-    return (blockchain.data);
-  }
-
-  public async getState(): Promise<State> {
-    const state = await axios.default.get(`${this.serverUrl}${this.urlPrefix}/state`);
-
-    return (state.data);
-  }
-
-  public async getActuals(): Promise<any> {
-    const state = await axios.default.get(`${this.serverUrl}${this.urlPrefix}/actuals`);
-
-    return (state.data);
-  }
-
-  public async getTransactions(): Promise<any> {
-    const transactions = await axios.default.get(`${this.serverUrl}${this.urlPrefix}/txpool`);
-
-    return transactions.data;
-  }
-
-  public async putBlock(block: string): Promise<any> {
-    return axios.default.put(`${this.serverUrl}${this.urlPrefix}`, block);
-
-  }
-
-}
 
 const start = async (): Promise<void> => {
 
-  const client = new ServerClient(serverUrl);
-  const parser = new YamlParser();
+  const { client, logger } = createClasses();
 
-  // const logger = winston.createLogger({
-  //   level: 'info',
-  //   format: winston.format.json(),
-  //   defaultMeta: { service: 'user-service' },
-  //   transports: [
-  //     new winston.transports.Console()
-  //   ]
-  // });
+  // tslint:disable-next-line:prefer-const
+  let [state, rawTransactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
 
-  //console.log((await client.getBlockChain()));
-  const state = await client.getState();
-  //console.log(state);
-  const transactions = await client.getTransactions();
-  //console.log(transactions);
-
-  const parsedTransactions = parser.parseTransactions(transactions);
-
-  const digest = parser.createDigestBlock(state.Digest);
-  console.log(digest);
-
-  let hash;
-  let nonce;
-  let block;
-  console.log(state.Difficulty);
-
-  do {
-    nonce = Math.ceil(Math.random() * (1000000000000000 - 1) + 1);
-
-    block = parser.createBlock(
-      new Date(),
-      nonce,
-      state.Fee.toString(),
-      state.Difficulty,
-      [
-        parsedTransactions[0],
-        parsedTransactions[1],
-        parsedTransactions[2],
-        parsedTransactions[3],
-        parsedTransactions[4],
-        parsedTransactions[5],
-        parsedTransactions[6],
-      ],
-    );
-
-    hash = crypto.SHA384(digest.concat(block, digest, block));
-
-  }
-  // tslint:disable-next-line: no-suspicious-comment
-  //FIXME: difficulty neni pocet nul ve stringu, ale v binarni reprezentaci
-  while (hash.toString().slice(0, 3) !== '000');
-
-  console.log(hash);
-  console.log(hash.toString());
-  console.log(nonce);
-
-  const newBlock = parser.createDigestBlock(hash.toString()).concat(block);
-  console.log(newBlock);
+  const transactionMap = YamlParser.PARSE_TRANSACTIONS(rawTransactions);
 
   try {
-    const result = await client.putBlock(newBlock);
-    console.log(result);
-  }
-  catch (err) {
-    console.log(err);
+    const port = serverPort ? `:${serverPort}` : ``;
+    const ws = new WebSocket(`${serverHost}${port}/api/coingame/ws`);
+
+    ws.on('open', () => {
+      logger.info('⛓️ websocket opened ⛓️');
+    });
+
+    ws.on('message', async (ev: string) => {
+      // tslint:disable-next-line:no-reserved-keywords
+      const json: { type: string; body: string } = JSON.parse(ev);
+      const transaction = YamlParser.PARSE_TRANSACTION(json.body.split(NL));
+      if (json.type === 'transaction.removed') {
+        transactionMap.delete(transaction.idLine);
+      }
+      if (json.type === 'transaction.added') {
+        transactionMap.set(transaction.idLine, transaction);
+      }
+
+      // try to check if Digest changed
+      const newState = await client.getState();
+      if (newState.Digest !== state.Digest) {
+        state = newState;
+      }
+
+    });
+  } catch (err) {
+    logger.error(err);
   }
 
+  // tslint:disable-next-line:no-constant-condition
+  while (true) {
+    const loopPromise: Promise<void> = new Promise(async (resolve) => {
+
+      let hash: Buffer;
+      let nonce;
+      let newBlock;
+      const date = new Date();
+
+      do {
+
+        const blockLoop: Promise<Buffer> = new Promise((res) => {
+          const previousBlock = YamlParser.CREATE_DIGEST_BLOCK(state.Digest);
+
+          // tslint:disable-next-line:insecure-random
+          nonce = Math.ceil(Math.random() * (Number.MAX_SAFE_INTEGER - 1) + 1);
+
+          const block = YamlParser.CREATE_BLOCK(
+            date,
+            nonce,
+            state.Fee,
+            state.Difficulty,
+            transactionMap,
+          );
+
+          newBlock = previousBlock
+            .concat(NL, block);
+
+          // non blocking resolve - important for immediate processing websocket events
+          setImmediate(() => {
+            res(hashingFunction(newBlock));
+          });
+
+        });
+
+        hash = await blockLoop;
+
+      }
+      while (getZeroCountFromStart(hash) < state.Difficulty);
+
+      try {
+        await client.putBlock(newBlock);
+        logger.info('💰 block successfully sent 💰');
+      }
+      catch (err) {
+        logger.error(err.response.data);
+        logger.info('🐌 another miner was faster 🐌');
+      }
+      finally {
+        state = await client.getState();
+        resolve();
+      }
+    });
+
+    await loopPromise;
+  }
 };
 
 void start();
+
+
+
+
+
+
