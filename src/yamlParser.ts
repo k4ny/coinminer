@@ -17,42 +17,24 @@ export class YamlParser {
 
     const transactions: Transaction[] = [];
 
-    // tslint:disable-next-line:no-suspicious-comment
-    //TODO: potencial pro paralelizaci
-    for (let i = 0; i < lines.length; i = i + 6) {
-
-      if (lines[i].includes('--- !Transaction')) {
-
-        const transaction: Transaction = {
-          validTo: new Date(lines[i + 5].slice(8)),
-          transLine: lines[i],
-          dataLine1: lines[i + 1],
-          dataLine2: lines[i + 2],
-          feeLine: lines[i + 3],
-          idLine: lines[i + 4],
-          validToLine: lines[i + 5],
-        };
-
-        transactions.push(transaction);
-      }
+    for (let i = 0; i <= lines.length - 6; i = i + 6) {
+      const transaction = this.parseTransaction(lines.slice(i, i + 6));
+      transactions.push(transaction);
     }
 
     return transactions;
   }
 
-  public parseTransaction(yaml: string): Transaction {
-    const lines = yaml.split(NL);
-
-    const i = 0;
+  public parseTransaction(lines: string[]): Transaction {
 
     return {
-      validTo: new Date(lines[i + 5].slice(8)),
-      transLine: lines[i],
-      dataLine1: lines[i + 1],
-      dataLine2: lines[i + 2],
-      feeLine: lines[i + 3],
-      idLine: lines[i + 4],
-      validToLine: lines[i + 5],
+      validTo: new Date(lines[5].slice(8)),
+      transLine: lines[0],
+      dataLine1: lines[1],
+      dataLine2: lines[2],
+      feeLine: lines[3],
+      idLine: lines[4],
+      validToLine: lines[5],
     };
   }
 

@@ -33,11 +33,11 @@ const start = async (): Promise<void> => {
       // tslint:disable-next-line:no-reserved-keywords
       const json: { type: string; body: string } = JSON.parse(ev);
       if (json.type === 'transaction.removed') {
-        const transaction = parser.parseTransaction(json.body);
+        const transaction = parser.parseTransaction(json.body.split(NL));
         console.log(`removed ${transaction.idLine}`);
       }
       if (json.type === 'transaction.added') {
-        const transaction = parser.parseTransaction(json.body);
+        const transaction = parser.parseTransaction(json.body.split(NL));
         console.log(`added ${transaction.idLine}`);
       }
     });
@@ -47,44 +47,59 @@ const start = async (): Promise<void> => {
 
   // tslint:disable-next-line:no-constant-condition
   while (true) {
+    const loopPromise: Promise<void> = new Promise(async (resolve) => {
 
-    const [state, transactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
+      const [state, transactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
 
-    const parsedTransactions = parser.parseTransactions(transactions);
+      const parsedTransactions = parser.parseTransactions(transactions);
 
-    const previousBlock = parser.createDigestBlock(state.Digest);
+      const previousBlock = parser.createDigestBlock(state.Digest);
 
-    let hash: Buffer;
-    let nonce;
-    let newBlock;
+      let hash: Buffer;
+      let nonce;
+      let newBlock;
 
-    do {
-      // tslint:disable-next-line:insecure-random
-      nonce = Math.ceil(Math.random() * (1000000000000000 - 1) + 1);
+      do {
 
-      const block = parser.createBlock(
-        new Date(),
-        nonce,
-        state.Fee,
-        state.Difficulty,
-        parsedTransactions.slice(0, 99),
-      );
+        const blockLoop: Promise<Buffer> = new Promise((res) => {
+          // tslint:disable-next-line:insecure-random
+          nonce = Math.ceil(Math.random() * (1000000000000000 - 1) + 1);
 
-      newBlock = previousBlock
-        .concat(NL, block);
+          const block = parser.createBlock(
+            new Date(),
+            nonce,
+            state.Fee,
+            state.Difficulty,
+            parsedTransactions.slice(0, 99),
+          );
 
-      hash = hashingFunction(newBlock);
-    }
-    while (getZeroCountFromStart(hash) < state.Difficulty);
+          newBlock = previousBlock
+            .concat(NL, block);
 
-    try {
-      const result = await client.putBlock(newBlock);
-      console.log(result.data);
-    }
-    catch (err) {
-      console.log(err.data);
-    }
+          // non blocking resolve - important for immediate processing websocket events
+          setImmediate(() => {
+            res(hashingFunction(newBlock));
+          });
 
+        });
+
+        hash = await blockLoop;
+
+      }
+      while (getZeroCountFromStart(hash) < state.Difficulty);
+
+      try {
+        const result = await client.putBlock(newBlock);
+        console.log(result.data);
+        resolve();
+      }
+      catch (err) {
+        console.log(err);
+        resolve();
+      }
+    });
+
+    await loopPromise;
   }
 
 };
