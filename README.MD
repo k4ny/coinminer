@@ -24,9 +24,3 @@ For tests you should run
 | SERVER_HOST               | Server host - example 'http://localhost'                                            |
 | SERVER_PORT               | Server Port - example '8080'                                                        |
 | MINER_NAME                | Miner name visible in score - example 'Peter'                                       |
-
-### Run application in docker
-```
-docker build -t coinminer .
-
-```
