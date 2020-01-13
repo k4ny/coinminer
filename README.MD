@@ -19,7 +19,7 @@ For tests you should run
 
 ### Environment variables
 
-| Evironment variable       | Description                                                                         |
+| Environment variable       | Description                                                                         |
 |---------------------------|-------------------------------------------------------------------------------------|
 | SERVER_HOST               | Server host - example 'http://localhost'                                            |
 | SERVER_PORT               | Server Port - example '8080'                                                        |
