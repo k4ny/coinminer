@@ -1,4 +1,3 @@
-
 import * as WebSocket from 'ws';
 import { serverHost, serverPort } from './config';
 import { NL } from './consts';
