@@ -3,8 +3,24 @@ import * as WebSocket from 'ws';
 import { serverHost, serverPort } from './config';
 import { NL } from './consts';
 import { createClasses, getZeroCountFromStart, hashingFunction } from './functions';
-import { State } from './types';
+import { State, Transaction } from './types';
 import { YamlParser } from './yamlParser';
+
+function generateNewBlockAndHash(state: State, transactionMap: Map<string, Transaction>): Promise<[string, Buffer]> {
+  return new Promise((res) => {
+    const previousBlock = YamlParser.CREATE_DIGEST_BLOCK(state.Digest);
+    // tslint:disable-next-line:insecure-random
+    const nonce = Math.ceil(Math.random() * (Number.MAX_SAFE_INTEGER - 1) + 1);
+    const block = YamlParser.CREATE_BLOCK(new Date(), nonce, state.Fee, state.Difficulty, transactionMap);
+    const newBlockChain = previousBlock
+      .concat(NL, block);
+
+    // non blocking resolve - important for immediate processing websocket events
+    setImmediate(() => {
+      res([newBlockChain, hashingFunction(newBlockChain)]);
+    });
+  });
+}
 
 const start = async (): Promise<void> => {
 
@@ -50,38 +66,10 @@ const start = async (): Promise<void> => {
     const loopPromise: Promise<void> = new Promise(async (resolve) => {
 
       let hash: Buffer;
-      let nonce;
-      let newBlock;
-      const date = new Date();
+      let newBlock: string;
 
       do {
-
-        const blockLoop: Promise<Buffer> = new Promise((res) => {
-          const previousBlock = YamlParser.CREATE_DIGEST_BLOCK(state.Digest);
-
-          // tslint:disable-next-line:insecure-random
-          nonce = Math.ceil(Math.random() * (Number.MAX_SAFE_INTEGER - 1) + 1);
-
-          const block = YamlParser.CREATE_BLOCK(
-            date,
-            nonce,
-            state.Fee,
-            state.Difficulty,
-            transactionMap,
-          );
-
-          newBlock = previousBlock
-            .concat(NL, block);
-
-          // non blocking resolve - important for immediate processing websocket events
-          setImmediate(() => {
-            res(hashingFunction(newBlock));
-          });
-
-        });
-
-        hash = await blockLoop;
-
+        [newBlock, hash] = await generateNewBlockAndHash(state, transactionMap);
       }
       while (getZeroCountFromStart(hash) < state.Difficulty);
 
@@ -104,9 +92,3 @@ const start = async (): Promise<void> => {
 };
 
 void start();
-
-
-
-
-
-
