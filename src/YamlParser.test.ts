@@ -1,4 +1,5 @@
 import { yamlTransactionsExample } from './mocks/yamlTransactionsExample';
+import { Transactions } from './Transactions';
 import { Transaction } from './types';
 import { YamlParser } from './YamlParser';
 
@@ -55,7 +56,7 @@ describe('YamlParser tests', () => {
 
   it('should create block', async () => {
     const date = new Date('2020-01-09 12:19:09.851466');
-    const transactions = YamlParser.PARSE_TRANSACTIONS(yamlTransactionsExample);
+    const transactions = new Transactions(YamlParser.PARSE_TRANSACTIONS(yamlTransactionsExample));
 
     const result = YamlParser.CREATE_BLOCK(
       date,

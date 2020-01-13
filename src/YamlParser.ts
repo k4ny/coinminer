@@ -1,5 +1,6 @@
 import { minerName } from './config';
 import { NL, TAB } from './consts';
+import { Transactions } from './Transactions';
 import { Transaction } from './types';
 
 // tslint:disable-next-line:completed-docs
@@ -48,7 +49,7 @@ export class YamlParser {
     nonce: number,
     fee: number,
     difficulty: number,
-    transactionMap: Map<string, Transaction>,
+    transactions: Transactions,
   ): string {
     const feeString: string = Number.isInteger(fee) ? `${fee}.0` : fee.toString();
 
@@ -62,9 +63,7 @@ Transactions:
     Fee: ${feeString}
 `;
 
-    for (const [, transaction] of transactionMap) {
-      str = str.concat(transaction.transactionForBlock);
-    }
+    str = str.concat(transactions.getTransactionsBlock());
 
     return str;
   }

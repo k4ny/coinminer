@@ -2,15 +2,16 @@ import * as WebSocket from 'ws';
 import { serverHost, serverPort } from './config';
 import { NL } from './consts';
 import { createClasses, getZeroCountFromStart, hashingFunction } from './functions';
-import { State, Transaction } from './types';
+import { Transactions } from './Transactions';
+import { State } from './types';
 import { YamlParser } from './YamlParser';
 
-function generateNewBlockAndHash(state: State, transactionMap: Map<string, Transaction>): Promise<[string, Buffer]> {
+function generateNewBlockAndHash(state: State, transactions: Transactions): Promise<[string, Buffer]> {
   return new Promise((res) => {
     const previousBlock = YamlParser.CREATE_DIGEST_BLOCK(state.Digest);
     // tslint:disable-next-line:insecure-random
     const nonce = Math.ceil(Math.random() * (Number.MAX_SAFE_INTEGER - 1) + 1);
-    const block = YamlParser.CREATE_BLOCK(new Date(), nonce, state.Fee, state.Difficulty, transactionMap);
+    const block = YamlParser.CREATE_BLOCK(new Date(), nonce, state.Fee, state.Difficulty, transactions);
     const newBlockChain = previousBlock.concat(NL, block);
 
     // non blocking resolve - important for immediate processing websocket events
@@ -27,7 +28,7 @@ const start = async (): Promise<void> => {
   // tslint:disable-next-line:prefer-const
   let [state, rawTransactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
 
-  const transactionMap = YamlParser.PARSE_TRANSACTIONS(rawTransactions);
+  const transactions = new Transactions(YamlParser.PARSE_TRANSACTIONS(rawTransactions));
 
   try {
     const port = serverPort ? `:${serverPort}` : ``;
@@ -42,10 +43,10 @@ const start = async (): Promise<void> => {
       const json: { type: string; body: string } = JSON.parse(ev);
       const transaction = YamlParser.PARSE_TRANSACTION(json.body.split(NL));
       if (json.type === 'transaction.removed') {
-        transactionMap.delete(transaction.idLine);
+        transactions.deleteTransaction(transaction);
       }
       if (json.type === 'transaction.added') {
-        transactionMap.set(transaction.idLine, transaction);
+        transactions.addTransaction(transaction);
       }
 
       // try to check if Digest changed
@@ -67,7 +68,7 @@ const start = async (): Promise<void> => {
       let newBlock: string;
 
       do {
-        [newBlock, hash] = await generateNewBlockAndHash(state, transactionMap);
+        [newBlock, hash] = await generateNewBlockAndHash(state, transactions);
       }
       while (getZeroCountFromStart(hash) < state.Difficulty);
 
