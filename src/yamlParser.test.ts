@@ -3,11 +3,6 @@ import { Transaction } from './types';
 import { YamlParser } from './yamlParser';
 
 describe('yamlParser tests', () => {
-  let parser: YamlParser;
-
-  beforeAll(() => {
-    parser = new YamlParser();
-  });
 
   it('should parse transactions', async () => {
     const resultMap = YamlParser.PARSE_TRANSACTIONS(yamlTransactionsExample);
