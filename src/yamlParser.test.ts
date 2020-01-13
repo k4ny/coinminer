@@ -10,7 +10,7 @@ describe('yamlParser tests', () => {
   });
 
   it('should parse transactions', async () => {
-    const resultMap = parser.parseTransactions(yamlTransactionsExample);
+    const resultMap = YamlParser.PARSE_TRANSACTIONS(yamlTransactionsExample);
 
     const result: Transaction[] = [];
 
@@ -60,9 +60,9 @@ describe('yamlParser tests', () => {
 
   it('should create block', async () => {
     const date = new Date('2020-01-09 12:19:09.851466');
-    const transactions = parser.parseTransactions(yamlTransactionsExample);
+    const transactions = YamlParser.PARSE_TRANSACTIONS(yamlTransactionsExample);
 
-    const result = parser.createBlock(
+    const result = YamlParser.CREATE_BLOCK(
       date,
       1,
       // tslint:disable-next-line:number-literal-format
@@ -95,7 +95,7 @@ Transactions:
   });
 
   it('should create digest hash part', async () => {
-    const result = parser.createDigestBlock('00000000b9d0b0ceeee295cb2c02387d16ecf3b52a0811f165e5902ef78659db96e409b9493ba7fe4433e2439f5672a7');
+    const result = YamlParser.CREATE_DIGEST_BLOCK('00000000b9d0b0ceeee295cb2c02387d16ecf3b52a0811f165e5902ef78659db96e409b9493ba7fe4433e2439f5672a7');
 
     expect(result)
       .toEqual(
