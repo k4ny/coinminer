@@ -14,19 +14,19 @@ export class ServerClient {
   public async getBlockChain(): Promise<BlockChain> {
     const blockchain = await axios.default.get(`${this.serverUrl}${this.urlPrefix}`);
 
-    return (blockchain.data);
+    return blockchain.data;
   }
 
   public async getState(): Promise<State> {
     const state = await axios.default.get(`${this.serverUrl}${this.urlPrefix}/state`);
 
-    return (state.data);
+    return state.data;
   }
 
   public async getActuals(): Promise<any> {
     const state = await axios.default.get(`${this.serverUrl}${this.urlPrefix}/actuals`);
 
-    return (state.data);
+    return state.data;
   }
 
   public async getTransactions(): Promise<any> {

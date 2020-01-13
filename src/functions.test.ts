@@ -1,7 +1,6 @@
 import { getZeroCountFromStart, hashingFunction } from './functions';
 
 describe('tests for hash function', () => {
-
   it('should test the hashing function', async () => {
     const result = hashingFunction(`block`);
 
@@ -89,5 +88,4 @@ describe('tests fro getZeroCountFromStart function', () => {
     expect(getZeroCountFromStart(buffer))
       .toEqual(16);
   });
-
 });

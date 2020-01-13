@@ -3,7 +3,7 @@ import { serverHost, serverPort } from './config';
 import { NL } from './consts';
 import { createClasses, getZeroCountFromStart, hashingFunction } from './functions';
 import { State, Transaction } from './types';
-import { YamlParser } from './yamlParser';
+import { YamlParser } from './YamlParser';
 
 function generateNewBlockAndHash(state: State, transactionMap: Map<string, Transaction>): Promise<[string, Buffer]> {
   return new Promise((res) => {
@@ -11,8 +11,7 @@ function generateNewBlockAndHash(state: State, transactionMap: Map<string, Trans
     // tslint:disable-next-line:insecure-random
     const nonce = Math.ceil(Math.random() * (Number.MAX_SAFE_INTEGER - 1) + 1);
     const block = YamlParser.CREATE_BLOCK(new Date(), nonce, state.Fee, state.Difficulty, transactionMap);
-    const newBlockChain = previousBlock
-      .concat(NL, block);
+    const newBlockChain = previousBlock.concat(NL, block);
 
     // non blocking resolve - important for immediate processing websocket events
     setImmediate(() => {

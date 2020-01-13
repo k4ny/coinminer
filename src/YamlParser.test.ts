@@ -1,8 +1,8 @@
 import { yamlTransactionsExample } from './mocks/yamlTransactionsExample';
 import { Transaction } from './types';
-import { YamlParser } from './yamlParser';
+import { YamlParser } from './YamlParser';
 
-describe('yamlParser tests', () => {
+describe('YamlParser tests', () => {
 
   it('should parse transactions', async () => {
     const resultMap = YamlParser.PARSE_TRANSACTIONS(yamlTransactionsExample);
