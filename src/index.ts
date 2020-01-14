@@ -14,7 +14,7 @@ function generateNewBlockAndHash(state: StateHelper, transactions: Transactions)
 
     const newBlock = state.getFormatedBlock(nonce);
 
-    const completeBlock = newBlock.concat(transactions.getTransactionsBlock());
+    const completeBlock = newBlock + transactions.getTransactionsBlock();
 
     // non blocking resolve - important for immediate processing websocket events
     setImmediate(() => {
@@ -70,7 +70,7 @@ const start = async (): Promise<void> => {
       do {
         [newBlock, hash] = await generateNewBlockAndHash(stateHelper, transactions);
       }
-      while (getZeroCountFromStart(hash) < state.Difficulty);
+      while (getZeroCountFromStart(hash) < stateHelper.getDifficulty());
 
       try {
         await client.putBlock(newBlock);

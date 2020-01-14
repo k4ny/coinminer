@@ -32,7 +32,7 @@ export class Transactions {
     let str = '';
 
     for (const [, transaction] of this.transactionMap) {
-      str = str.concat(transaction.transactionForBlock);
+      str += transaction.transactionForBlock;
     }
 
     this.transactionsBlock = str;

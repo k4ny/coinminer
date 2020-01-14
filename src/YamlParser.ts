@@ -20,7 +20,7 @@ export class YamlParser {
 
   public static PARSE_TRANSACTION(lines: string[]): Transaction {
 
-    const NEW_LINE_WITH_DOUBLE_TAB: string = NL.concat(TAB, TAB);
+    const NEW_LINE_WITH_DOUBLE_TAB: string = NL + TAB + TAB;
 
     return {
       validTo: new Date(lines[5].slice(8)),
@@ -30,17 +30,16 @@ export class YamlParser {
       feeLine: lines[3],
       idLine: lines[4],
       validToLine: lines[5],
-      transactionForBlock: `  - !Transaction`.concat(
-        NEW_LINE_WITH_DOUBLE_TAB,
-        lines[4],
-        NEW_LINE_WITH_DOUBLE_TAB,
-        lines[3],
-        NEW_LINE_WITH_DOUBLE_TAB,
-        lines[1],
-        NEW_LINE_WITH_DOUBLE_TAB,
-        lines[2],
-        NL,
-      ),
+      transactionForBlock: `  - !Transaction`
+        + NEW_LINE_WITH_DOUBLE_TAB
+        + lines[4]
+        + NEW_LINE_WITH_DOUBLE_TAB
+        + lines[3]
+        + NEW_LINE_WITH_DOUBLE_TAB
+        + lines[1]
+        + NEW_LINE_WITH_DOUBLE_TAB
+        + lines[2]
+        + NL,
     };
   }
 
@@ -63,7 +62,7 @@ Transactions:
     Fee: ${feeString}
 `;
 
-    str = str.concat(transactions.getTransactionsBlock());
+    str += transactions.getTransactionsBlock();
 
     return str;
   }

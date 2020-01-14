@@ -26,12 +26,15 @@ export class StateHelper {
   }
 
   public getFormatedBlock(nonce: number) {
-    return this.digestBlock.concat(
-      NL,
-      this.blockFirstPart,
-      `Nonce: ${nonce}`,
-      this.blockSecondPart,
-    );
+    return this.digestBlock
+      + NL
+      + this.blockFirstPart
+      + `Nonce: ${nonce}`
+      + this.blockSecondPart;
+  }
+
+  public getDifficulty(): number {
+    return this.state.Difficulty;
   }
 
   private formatFeeString(): string {
