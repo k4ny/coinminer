@@ -11,13 +11,17 @@ export class Transactions {
   }
 
   public addTransaction(transaction: Transaction): void {
-    this.transactionMap.set(transaction.idLine, transaction);
-    this.generateTransactionsBlock();
+    if (!this.transactionMap.has(transaction.idLine)) {
+      this.transactionMap.set(transaction.idLine, transaction);
+      this.generateTransactionsBlock();
+    }
   }
 
   public deleteTransaction(transaction: Transaction): void {
-    this.transactionMap.delete(transaction.idLine);
-    this.generateTransactionsBlock();
+    if (this.transactionMap.has(transaction.idLine)) {
+      this.transactionMap.delete(transaction.idLine);
+      this.generateTransactionsBlock();
+    }
   }
 
   public getTransactionsBlock(): string {

@@ -1,22 +1,24 @@
 import * as WebSocket from 'ws';
-import { serverHost, serverPort } from './config';
+import { minerName, serverHost, serverPort } from './config';
 import { NL } from './consts';
 import { createClasses, getZeroCountFromStart, hashingFunction } from './functions';
+import { StateHelper } from './StateHelper';
 import { Transactions } from './Transactions';
 import { State } from './types';
 import { YamlParser } from './YamlParser';
 
-function generateNewBlockAndHash(state: State, transactions: Transactions): Promise<[string, Buffer]> {
+function generateNewBlockAndHash(state: StateHelper, transactions: Transactions): Promise<[string, Buffer]> {
   return new Promise((res) => {
-    const previousBlock = YamlParser.CREATE_DIGEST_BLOCK(state.Digest);
     // tslint:disable-next-line:insecure-random
     const nonce = Math.ceil(Math.random() * (Number.MAX_SAFE_INTEGER - 1) + 1);
-    const block = YamlParser.CREATE_BLOCK(new Date(), nonce, state.Fee, state.Difficulty, transactions);
-    const newBlockChain = previousBlock.concat(NL, block);
+
+    const newBlock = state.getFormatedBlock(nonce);
+
+    const completeBlock = newBlock.concat(transactions.getTransactionsBlock());
 
     // non blocking resolve - important for immediate processing websocket events
     setImmediate(() => {
-      res([newBlockChain, hashingFunction(newBlockChain)]);
+      res([completeBlock, hashingFunction(completeBlock)]);
     });
   });
 }
@@ -25,10 +27,10 @@ const start = async (): Promise<void> => {
 
   const { client, logger } = createClasses();
 
-  // tslint:disable-next-line:prefer-const
-  let [state, rawTransactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
+  const[state, rawTransactions]: [State, any] = await Promise.all([client.getState(), client.getTransactions()]);
 
   const transactions = new Transactions(YamlParser.PARSE_TRANSACTIONS(rawTransactions));
+  const stateHelper = new StateHelper(state, minerName, new Date());
 
   try {
     const port = serverPort ? `:${serverPort}` : ``;
@@ -49,11 +51,9 @@ const start = async (): Promise<void> => {
         transactions.addTransaction(transaction);
       }
 
-      // try to check if Digest changed
+      // try to check if state changed
       const newState = await client.getState();
-      if (newState.Digest !== state.Digest) {
-        state = newState;
-      }
+      stateHelper.setNewState(newState);
 
     });
   } catch (err) {
@@ -68,7 +68,7 @@ const start = async (): Promise<void> => {
       let newBlock: string;
 
       do {
-        [newBlock, hash] = await generateNewBlockAndHash(state, transactions);
+        [newBlock, hash] = await generateNewBlockAndHash(stateHelper, transactions);
       }
       while (getZeroCountFromStart(hash) < state.Difficulty);
 
@@ -81,7 +81,7 @@ const start = async (): Promise<void> => {
         logger.info('🐌 another miner was faster 🐌');
       }
       finally {
-        state = await client.getState();
+        stateHelper.setNewState(await client.getState());
         resolve();
       }
     });
